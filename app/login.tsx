@@ -17,7 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { supabase } from "./supabase";
+import { supabase } from "../lib/supabase";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -29,13 +29,13 @@ export default function LoginScreen() {
   const [checkingSession, setCheckingSession] = useState(true);
 
   const [loginMode, setLoginMode] = useState<"email" | "mobile">("email");
-  const [mobile, setMobile] = useState("");
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
+  // const [mobile, setMobile] = useState("");
+  // const [otp, setOtp] = useState("");
+  // const [otpSent, setOtpSent] = useState(false);
 
-  // ✅ NEW STATES FOR TIMER
-  const [timer, setTimer] = useState(60);
-  const [isResendDisabled, setIsResendDisabled] = useState(false);
+  // // ✅ NEW STATES FOR TIMER
+  // const [timer, setTimer] = useState(60);
+  // const [isResendDisabled, setIsResendDisabled] = useState(false);
 
   useEffect(() => {
     checkSession();
@@ -54,47 +54,59 @@ export default function LoginScreen() {
   }, []);
 
   // ✅ SAFE TIMER EFFECT (NO TYPESCRIPT ERROR)
+  // useEffect(() => {
+  //   if (!otpSent) return;
+
+  //   setIsResendDisabled(true);
+  //   setTimer(60);
+
+  //   const interval = setInterval(() => {
+  //     setTimer((prev) => {
+  //       if (prev <= 1) {
+  //         clearInterval(interval);
+  //         setIsResendDisabled(false);
+  //         return 0;
+  //       }
+  //       return prev - 1;
+  //     });
+  //   }, 1000);
+
+  //   return () => clearInterval(interval);
+  // }, [otpSent]);
+
+  // useEffect(() => {
+  //   const backAction = () => {
+  //     if (loginMode === "mobile") {
+  //       setLoginMode("email");
+  //       setOtpSent(false);
+  //       setMobile("");
+  //       setOtp("");
+  //       setIsResendDisabled(false);
+  //       setTimer(60);
+  //       return true;
+  //     }
+  //     return false;
+  //   };
+
+  //   const backHandler = BackHandler.addEventListener(
+  //     "hardwareBackPress",
+  //     backAction,
+  //   );
+
+  //   return () => backHandler.remove();
+  // }, [loginMode]);
+
   useEffect(() => {
-    if (!otpSent) return;
-
-    setIsResendDisabled(true);
-    setTimer(60);
-
-    const interval = setInterval(() => {
-      setTimer((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setIsResendDisabled(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [otpSent]);
-
-  useEffect(() => {
-    const backAction = () => {
-      if (loginMode === "mobile") {
-        setLoginMode("email");
-        setOtpSent(false);
-        setMobile("");
-        setOtp("");
-        setIsResendDisabled(false);
-        setTimer(60);
-        return true;
-      }
-      return false;
-    };
-
-    const backHandler = BackHandler.addEventListener(
+    const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
-      backAction,
+      () => {
+        BackHandler.exitApp(); // closes the app
+        return true; // prevent default behavior
+      },
     );
 
-    return () => backHandler.remove();
-  }, [loginMode]);
+    return () => subscription.remove();
+  }, []);
 
   const checkSession = async () => {
     const {
@@ -153,88 +165,88 @@ export default function LoginScreen() {
     }
   };
 
-  const getCleanMobile = () => mobile.replace(/\D/g, "");
+  // const getCleanMobile = () => mobile.replace(/\D/g, "");
 
-  const checkIfMobileRegistered = async () => {
-    const cleanedMobile = getCleanMobile();
+  // const checkIfMobileRegistered = async () => {
+  //   const cleanedMobile = getCleanMobile();
 
-    if (cleanedMobile.length !== 10) {
-      Alert.alert("Error", "Enter valid 10 digit mobile number");
-      return false;
-    }
+  //   if (cleanedMobile.length !== 10) {
+  //     Alert.alert("Error", "Enter valid 10 digit mobile number");
+  //     return false;
+  //   }
 
-    const formattedPhone = `+91${cleanedMobile}`;
+  //   const formattedPhone = `+91${cleanedMobile}`;
 
-    const { data } = await supabase
-      .from("staff_profile")
-      .select("phone")
-      .eq("phone", formattedPhone)
-      .maybeSingle();
+  //   const { data } = await supabase
+  //     .from("staff_profile")
+  //     .select("phone")
+  //     .eq("phone", formattedPhone)
+  //     .maybeSingle();
 
-    if (!data) {
-      Alert.alert("Error", "Number not registered yet");
-      return false;
-    }
+  //   if (!data) {
+  //     Alert.alert("Error", "Number not registered yet");
+  //     return false;
+  //   }
 
-    return true;
-  };
+  //   return true;
+  // };
 
-  const handleSendOtp = async () => {
-    const exists = await checkIfMobileRegistered();
-    if (!exists) return;
+  // const handleSendOtp = async () => {
+  //   const exists = await checkIfMobileRegistered();
+  //   if (!exists) return;
 
-    const formattedPhone = `+91${getCleanMobile()}`;
+  //   const formattedPhone = `+91${getCleanMobile()}`;
 
-    setLoading(true);
+  //   setLoading(true);
 
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: formattedPhone,
-    });
+  //   const { error } = await supabase.auth.signInWithOtp({
+  //     phone: formattedPhone,
+  //   });
 
-    setLoading(false);
+  //   setLoading(false);
 
-    if (error) {
-      Alert.alert("Error", error.message);
-    } else {
-      setOtpSent(true); // triggers timer
-      setOtp("");
-      Alert.alert("Success", "OTP sent successfully");
-    }
-  };
+  //   if (error) {
+  //     Alert.alert("Error", error.message);
+  //   } else {
+  //     setOtpSent(true); // triggers timer
+  //     setOtp("");
+  //     Alert.alert("Success", "OTP sent successfully");
+  //   }
+  // };
 
-  const handleVerifyOtp = async () => {
-    if (!otp) {
-      Alert.alert("Error", "Enter OTP");
-      return;
-    }
+  // const handleVerifyOtp = async () => {
+  //   if (!otp) {
+  //     Alert.alert("Error", "Enter OTP");
+  //     return;
+  //   }
 
-    const formattedPhone = `+91${getCleanMobile()}`;
+  //   const formattedPhone = `+91${getCleanMobile()}`;
 
-    setLoading(true);
+  //   setLoading(true);
 
-    const { error } = await supabase.auth.verifyOtp({
-      phone: formattedPhone,
-      token: otp,
-      type: "sms",
-    });
+  //   const { error } = await supabase.auth.verifyOtp({
+  //     phone: formattedPhone,
+  //     token: otp,
+  //     type: "sms",
+  //   });
 
-    if (error) {
-      setLoading(false);
-      Alert.alert("Error", "Invalid OTP");
-      return;
-    }
+  //   if (error) {
+  //     setLoading(false);
+  //     Alert.alert("Error", "Invalid OTP");
+  //     return;
+  //   }
 
-    const verified = await verifyDeviceSecurity();
+  //   const verified = await verifyDeviceSecurity();
 
-    if (!verified) {
-      await supabase.auth.signOut();
-      Alert.alert("Verification Failed");
-      setLoading(false);
-      return;
-    }
+  //   if (!verified) {
+  //     await supabase.auth.signOut();
+  //     Alert.alert("Verification Failed");
+  //     setLoading(false);
+  //     return;
+  //   }
 
-    router.replace("./my-role");
-  };
+  //   router.replace("./my-role");
+  // };
 
   const handleUnlock = async () => {
     const verified = await verifyDeviceSecurity();
@@ -286,10 +298,13 @@ export default function LoginScreen() {
               <Mail size={20} />
               <TextInput
                 placeholder="Email Address"
+                placeholderTextColor="#666"
                 style={styles.input}
                 autoCapitalize="none"
                 value={email}
                 onChangeText={setEmail}
+                keyboardAppearance="light"
+                selectionColor="#000"
               />
             </View>
 
@@ -297,10 +312,13 @@ export default function LoginScreen() {
               <Lock size={20} />
               <TextInput
                 placeholder="Password"
+                placeholderTextColor="#666"
                 style={styles.input}
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
+                keyboardAppearance="light"
+                selectionColor="#000"
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 {showPassword ? <EyeOff /> : <Eye />}
@@ -319,7 +337,7 @@ export default function LoginScreen() {
               )}
             </TouchableOpacity>
 
-            <Text style={styles.orText}>OR</Text>
+            {/* <Text style={styles.orText}>OR</Text>
 
             <TouchableOpacity
               style={styles.primaryBtn}
@@ -328,11 +346,11 @@ export default function LoginScreen() {
               <Text style={styles.primaryBtnText}>
                 Login With Mobile Number
               </Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </>
         )}
 
-        {loginMode === "mobile" && !otpSent && (
+        {/* {loginMode === "mobile" && !otpSent && (
           <>
             <View style={styles.inputContainer}>
               <Text style={styles.countryCode}>+91</Text>
@@ -358,9 +376,9 @@ export default function LoginScreen() {
               )}
             </TouchableOpacity>
           </>
-        )}
+        )} */}
 
-        {loginMode === "mobile" && otpSent && (
+        {/* {loginMode === "mobile" && otpSent && (
           <>
             <View style={styles.inputContainer}>
               <TextInput
@@ -402,9 +420,9 @@ export default function LoginScreen() {
               </Text>
             </TouchableOpacity>
           </>
-        )}
+        )} */}
 
-        {loginMode === "mobile" && (
+        {/* {loginMode === "mobile" && (
           <TouchableOpacity
             onPress={() => {
               setLoginMode("email");
@@ -416,7 +434,7 @@ export default function LoginScreen() {
           >
             <Text style={styles.backText}>← Back</Text>
           </TouchableOpacity>
-        )}
+        )} */}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -454,16 +472,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#666",
   },
+
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1.5,
+    borderColor: "#E0E0E0",
     borderRadius: 12,
     height: 56,
     paddingHorizontal: 15,
     marginBottom: 15,
     gap: 8,
+    backgroundColor: "#FFFFFF",
   },
+
   input: {
     flex: 1,
     fontSize: 16,

@@ -7,11 +7,11 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Keyboard,
   KeyboardAvoidingView,
   Linking,
+  Modal,
   Platform,
   ScrollView,
   StatusBar,
@@ -22,7 +22,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { supabase } from "./supabase";
+import { supabase } from "../lib/supabase";
 
 export default function AssignedServiceDetails() {
   const params = useLocalSearchParams();
@@ -50,6 +50,41 @@ export default function AssignedServiceDetails() {
   const [workStartedAt, setWorkStartedAt] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const [skipModalVisible, setSkipModalVisible] = useState(false);
+  const [skipType, setSkipType] = useState<"start" | "end" | null>(null);
+  const [selectedReason, setSelectedReason] = useState<string | null>(null);
+  const [startSkipReason, setStartSkipReason] = useState<string | null>(null);
+  const [endSkipReason, setEndSkipReason] = useState<string | null>(null);
+
+  const [popupVisible, setPopupVisible] = useState(false);
+  const [popupTitle, setPopupTitle] = useState("");
+  const [popupMessage, setPopupMessage] = useState("");
+  const [popupConfirmText, setPopupConfirmText] = useState("OK");
+  const [popupCancelText, setPopupCancelText] = useState<string | null>(null);
+  const [popupOnConfirm, setPopupOnConfirm] = useState<(() => void) | null>(
+    null,
+  );
+
+  const showPopup = ({
+    title,
+    message,
+    confirmText = "OK",
+    cancelText = null,
+    onConfirm,
+  }: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string | null;
+    onConfirm?: () => void;
+  }) => {
+    setPopupTitle(title);
+    setPopupMessage(message);
+    setPopupConfirmText(confirmText);
+    setPopupCancelText(cancelText);
+    setPopupOnConfirm(() => onConfirm || null);
+    setPopupVisible(true);
+  };
   // ================= TIMER CHANGE END =================
 
   const scrollRef = useRef<ScrollView>(null);
@@ -175,11 +210,23 @@ export default function AssignedServiceDetails() {
 
   const openCamera = async () => {
     const p = await ImagePicker.requestCameraPermissionsAsync();
+
     if (!p.granted) {
-      Alert.alert("Camera permission required");
+      showPopup({
+        title: "Camera Permission Required 📷",
+        message: "Please allow camera access to upload work photos.",
+        confirmText: "Open Settings",
+        cancelText: "Cancel",
+        onConfirm: () => {
+          Linking.openSettings(); // Opens app settings
+        },
+      });
+
       return null;
     }
+
     const r = await ImagePicker.launchCameraAsync({ quality: 0.6 });
+
     return r.canceled ? null : r.assets[0].uri;
   };
 
@@ -282,10 +329,10 @@ export default function AssignedServiceDetails() {
           .eq("id", booking.id);
       }
     } catch (err: any) {
-      Alert.alert(
-        "Slow Network",
-        "Please check your internet connection and try again.",
-      );
+      showPopup({
+        title: "Slow Network ⚠️",
+        message: "Please check your internet connection and try again.",
+      });
     } finally {
       setUploading(false);
     }
@@ -293,18 +340,37 @@ export default function AssignedServiceDetails() {
 
   const verifyStartOtp = () => {
     if (startOtp !== booking.startotp) {
-      Alert.alert("Invalid Start OTP");
+      showPopup({
+        title: "Invalid OTP ❌",
+        message:
+          "The entered Start OTP is incorrect. Please check and try again.",
+      });
       return;
     }
+
     setStartVerified(true);
+
+    showPopup({
+      title: "OTP Verified ✅",
+      message: "Start OTP has been successfully verified.",
+    });
   };
 
   const verifyEndOtp = () => {
     if (endOtp !== booking.endotp) {
-      Alert.alert("Invalid End OTP");
+      showPopup({
+        title: "Invalid OTP ❌",
+        message: "The entered End OTP is incorrect.",
+      });
       return;
     }
+
     setEndVerified(true);
+
+    showPopup({
+      title: "OTP Verified ✅",
+      message: "End OTP verified successfully.",
+    });
   };
 
   const removeImage = (index: number, type: "start" | "end") => {
@@ -313,49 +379,34 @@ export default function AssignedServiceDetails() {
     else setAfterImages((p) => p.filter((_, i) => i !== index));
   };
 
-  const handleSkipPhoto = (type: "start" | "end") => {
-    Alert.alert("Why are you skipping photo?", "Select a reason", [
-      {
-        text: "Camera not working",
-        onPress: () => confirmSkip(type, "Camera not working"),
-      },
-      {
-        text: "Customer denied permission",
-        onPress: () => confirmSkip(type, "Customer denied permission"),
-      },
-      {
-        text: "App camera issue",
-        onPress: () => confirmSkip(type, "App camera issue"),
-      },
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-    ]);
+  const openSkipModal = (type: "start" | "end") => {
+    setSkipType(type);
+    setSelectedReason(null);
+    setSkipModalVisible(true);
   };
 
-  const confirmSkip = async (type: "start" | "end", reason: string) => {
-    Alert.alert("Confirm Skip", `Reason: ${reason}`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Confirm",
-        onPress: async () => {
-          if (type === "start") {
-            setStartPhotoSkipped(true);
-            await supabase
-              .from("bookings")
-              .update({ start_photo_skip_reason: reason })
-              .eq("id", booking.id);
-          } else {
-            setEndPhotoSkipped(true);
-            await supabase
-              .from("bookings")
-              .update({ end_photo_skip_reason: reason })
-              .eq("id", booking.id);
-          }
-        },
-      },
-    ]);
+  const confirmSkip = async () => {
+    if (!selectedReason || !skipType) return;
+
+    if (skipType === "start") {
+      setStartPhotoSkipped(true);
+      setStartSkipReason(selectedReason);
+
+      await supabase
+        .from("bookings")
+        .update({ start_photo_skip_reason: selectedReason })
+        .eq("id", booking.id);
+    } else {
+      setEndPhotoSkipped(true);
+      setEndSkipReason(selectedReason);
+
+      await supabase
+        .from("bookings")
+        .update({ end_photo_skip_reason: selectedReason })
+        .eq("id", booking.id);
+    }
+
+    setSkipModalVisible(false);
   };
 
   return (
@@ -401,9 +452,14 @@ export default function AssignedServiceDetails() {
               style={styles.callBtn}
               onPress={() => {
                 if (!booking.phone_number) {
-                  Alert.alert("Phone number not available");
+                  showPopup({
+                    title: "Number Not Available 📞",
+                    message:
+                      "Customer phone number is not available for this booking.",
+                  });
                   return;
                 }
+
                 Linking.openURL(`tel:${booking.phone_number}`);
               }}
             >
@@ -476,14 +532,27 @@ export default function AssignedServiceDetails() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={() => handleSkipPhoto("start")}
+                  onPress={() => openSkipModal("start")}
                   style={{
+                    marginTop: 8,
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    borderWidth: 1,
+                    borderColor: "#FFD700",
+                    borderRadius: 6,
                     alignSelf: "flex-end",
-                    marginTop: 6,
+                    backgroundColor: "#FFD700",
                   }}
                 >
-                  <Text style={{ color: "black", fontSize: 13 }}>Skip</Text>
+                  <Text style={{ color: "#0e0e0e", fontWeight: "bold" }}>
+                    Skip Photo
+                  </Text>
                 </TouchableOpacity>
+                {startSkipReason && (
+                  <Text style={{ color: "red", marginTop: 6 }}>
+                    Skipped: {startSkipReason}
+                  </Text>
+                )}
               </>
             )}
 
@@ -493,30 +562,27 @@ export default function AssignedServiceDetails() {
                 <TouchableOpacity
                   style={styles.startBtn}
                   onPress={() => {
-                    Alert.alert(
-                      "You Are Ready To Go 🚀",
-                      "Click OK to start work",
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        {
-                          text: "OK",
-                          onPress: async () => {
-                            const startTime = new Date().toISOString();
-                            await supabase
-                              .from("bookings")
-                              .update({
-                                work_started_at: startTime,
-                              })
-                              .eq("id", booking.id);
+                    showPopup({
+                      title: "You Are Ready To Go 🚀",
+                      message: "Click On START to start work.",
+                      confirmText: "START",
+                      cancelText: "Cancel",
+                      onConfirm: async () => {
+                        const startTime = new Date().toISOString();
 
-                            // ================= TIMER CHANGE =================
-                            setWorkStartedAt(startTime);
-                            setRunning(true);
-                            // ================= TIMER CHANGE END =================
-                          },
-                        },
-                      ],
-                    );
+                        await supabase
+                          .from("bookings")
+                          .update({
+                            work_started_at: startTime,
+                          })
+                          .eq("id", booking.id);
+
+                        // ================= TIMER CHANGE =================
+                        setWorkStartedAt(startTime);
+                        setRunning(true);
+                        // ================= TIMER CHANGE END =================
+                      },
+                    });
                   }}
                 >
                   <Text style={styles.btnText}>Start Work</Text>
@@ -535,23 +601,20 @@ export default function AssignedServiceDetails() {
                     clearInterval(timerRef.current);
                     timerRef.current = null;
                   }
+
                   setWorkStartedAt(null);
 
-                  Alert.alert(
-                    "Work Completed 🎉",
-                    `You have successfully completed the work in ${formatDuration(
+                  showPopup({
+                    title: "Work Completed 🎉",
+                    message: `You have successfully completed the work in ${formatDuration(
                       seconds,
                     )}.\n\nTo finalize the service, please upload the end photo and verify with OTP.`,
-                    [
-                      {
-                        text: "Proceed",
-                        onPress: () => {
-                          setRunning(false);
-                          setWorkStopped(true);
-                        },
-                      },
-                    ],
-                  );
+                    confirmText: "Proceed",
+                    onConfirm: () => {
+                      setRunning(false);
+                      setWorkStopped(true);
+                    },
+                  });
                 }}
               >
                 <Text>Work Complete</Text>
@@ -597,14 +660,27 @@ export default function AssignedServiceDetails() {
 
                 {/* ✅ ADD SKIP BUTTON RIGHT HERE */}
                 <TouchableOpacity
-                  onPress={() => handleSkipPhoto("end")}
+                  onPress={() => openSkipModal("end")}
                   style={{
+                    marginTop: 8,
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    borderWidth: 1,
+                    borderColor: "#FFD700",
+                    borderRadius: 6,
                     alignSelf: "flex-end",
-                    marginTop: 6,
+                    backgroundColor: "#FFD700",
                   }}
                 >
-                  <Text style={{ color: "black", fontSize: 13 }}>Skip</Text>
+                  <Text style={{ color: "black", fontWeight: "bold" }}>
+                    Skip Photo
+                  </Text>
                 </TouchableOpacity>
+                {endSkipReason && (
+                  <Text style={{ color: "red", marginTop: 6 }}>
+                    Skipped: {endSkipReason}
+                  </Text>
+                )}
 
                 {(afterImages.length > 0 || endPhotoSkipped) && (
                   <>
@@ -670,12 +746,14 @@ export default function AssignedServiceDetails() {
                     })
                     .eq("id", booking.id);
 
-                  Alert.alert("Well Done! 🎉", "You have completed a service", [
-                    {
-                      text: "OK",
-                      onPress: () => router.replace("/dashboard"),
+                  showPopup({
+                    title: "Well Done! 🎉",
+                    message: "You have successfully completed this service.",
+                    confirmText: "Go to Dashboard",
+                    onConfirm: () => {
+                      router.replace("/dashboard");
                     },
-                  ]);
+                  });
                 }}
               >
                 <Text style={styles.serviceDoneText}>Service Completed</Text>
@@ -684,6 +762,103 @@ export default function AssignedServiceDetails() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {skipModalVisible && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+              Why are you skipping?
+            </Text>
+
+            {[
+              "Camera not working",
+              "Customer denied permission",
+              "Low light issue",
+            ].map((reason) => (
+              <TouchableOpacity
+                key={reason}
+                onPress={() => setSelectedReason(reason)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 8,
+                }}
+              >
+                <Ionicons
+                  name={
+                    selectedReason === reason
+                      ? "radio-button-on"
+                      : "radio-button-off"
+                  }
+                  size={18}
+                  color="#000"
+                />
+                <Text style={{ marginLeft: 8 }}>{reason}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                marginTop: 15,
+              }}
+            >
+              <TouchableOpacity onPress={() => setSkipModalVisible(false)}>
+                <Text style={{ color: "red" }}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                disabled={!selectedReason}
+                onPress={confirmSkip}
+              >
+                <Text
+                  style={{
+                    color: selectedReason ? "green" : "gray",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Confirm
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      <Modal visible={popupVisible} transparent animationType="fade">
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupCard}>
+            <View style={styles.iconCircle}>
+              <Ionicons name="checkmark" size={28} color="#000" />
+            </View>
+
+            <Text style={styles.popupTitle}>{popupTitle}</Text>
+            <Text style={styles.popupMessage}>{popupMessage}</Text>
+
+            <View style={styles.buttonRow}>
+              {popupCancelText && (
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => setPopupVisible(false)}
+                >
+                  <Text style={styles.cancelText}>{popupCancelText}</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={styles.confirmBtn}
+                onPress={() => {
+                  setPopupVisible(false);
+                  if (popupOnConfirm) popupOnConfirm();
+                }}
+              >
+                <Text style={styles.confirmText}>{popupConfirmText}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* ✅ FOOTER LOCKED */}
       {!isKeyboardVisible && (
@@ -817,4 +992,114 @@ const styles = StyleSheet.create({
   footerItem: { alignItems: "center" },
   footerText: { fontSize: 12, marginTop: 4, fontWeight: "600" },
   footerTextActive: { fontSize: 12, marginTop: 4, fontWeight: "800" },
+
+  modalOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  modalContainer: {
+    backgroundColor: "#fff",
+    width: "85%",
+    padding: 20,
+    borderRadius: 12,
+  },
+
+  popupBox: {
+    width: "85%",
+    backgroundColor: "#FFD700",
+    padding: 25,
+    borderRadius: 25,
+    alignItems: "center",
+    elevation: 20,
+  },
+
+  popupCancel: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginRight: 10,
+  },
+
+  popupConfirm: {
+    backgroundColor: "#000",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
+
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  popupCard: {
+    width: "85%",
+    backgroundColor: "#ded8b9",
+    borderRadius: 18,
+    paddingVertical: 25,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    elevation: 10,
+  },
+
+  iconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+
+  popupTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#000",
+    textAlign: "center",
+  },
+
+  popupMessage: {
+    fontSize: 14,
+    color: "#333",
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 20,
+  },
+
+  buttonRow: {
+    flexDirection: "row",
+    marginTop: 20,
+  },
+
+  cancelBtn: {
+    marginRight: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+
+  cancelText: {
+    color: "#000",
+    fontWeight: "600",
+  },
+
+  confirmBtn: {
+    backgroundColor: "#000",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+
+  confirmText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
 });

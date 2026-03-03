@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { supabase } from "./supabase";
+import { supabase } from "../lib/supabase";
 
 /* ================= SCREEN ================= */
 

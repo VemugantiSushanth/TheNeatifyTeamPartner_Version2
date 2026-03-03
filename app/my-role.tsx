@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { router, useFocusEffect, usePathname } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -6,7 +7,6 @@ import {
   BackHandler,
   Dimensions,
   FlatList,
-  Image,
   Linking,
   Pressable,
   RefreshControl,
@@ -18,7 +18,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { supabase } from "./supabase";
+import { supabase } from "../lib/supabase";
 
 const { height, width } = Dimensions.get("window");
 const SLIDER_HEIGHT = height * 0.42;
@@ -57,15 +57,29 @@ export default function MyRoleScreen() {
 
   /* ================= FETCH SLIDES ================= */
   const fetchSlides = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("hero_images")
       .select("image_path")
-      .eq("screen", "home")
-      .order("title", { ascending: true });
+      .eq("is_active", true) // ✅ only active images
+      .order("priority", { ascending: true }); // ✅ order by priority
 
-    if (data) setSlides(data.map((item) => item.image_path));
+    if (error) {
+      console.log("Error fetching slides:", error);
+      return;
+    }
+
+    if (data) {
+      const imageUrls = data.map((item) => {
+        const { data: publicUrlData } = supabase.storage
+          .from("hero-images-staff")
+          .getPublicUrl(item.image_path);
+
+        return publicUrlData.publicUrl;
+      });
+
+      setSlides(imageUrls);
+    }
   };
-
   /* ================= FETCH COUNTS ================= */
   const fetchCounts = async () => {
     const { data } = await supabase.auth.getUser();
@@ -273,7 +287,13 @@ export default function MyRoleScreen() {
                   )
                 }
                 renderItem={({ item }) => (
-                  <Image source={{ uri: item }} style={styles.slideImage} />
+                  <Image
+                    source={{ uri: item }}
+                    style={styles.slideImage}
+                    contentFit="cover"
+                    cachePolicy="disk" // 🔥 Enables disk caching
+                    transition={300} // Smooth fade effect
+                  />
                 )}
               />
 

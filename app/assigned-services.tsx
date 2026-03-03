@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { supabase } from "./supabase";
+import { supabase } from "../lib/supabase";
 
 export default function AssignedServices() {
   const [services, setServices] = useState<any[]>([]);
@@ -137,6 +137,18 @@ export default function AssignedServices() {
                 onPress={() => openMaps(item.full_address)}
               >
                 <Text style={styles.mapBtnText}>Navigate</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.openServiceBtn}
+                onPress={() =>
+                  router.push({
+                    pathname: "/assigned-service-details",
+                    params: { booking: JSON.stringify(item) },
+                  })
+                }
+              >
+                <Text style={styles.openServiceText}>Open Service</Text>
               </TouchableOpacity>
             </View>
           ))
@@ -264,5 +276,18 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: "600",
     color: "#000",
+  },
+
+  openServiceBtn: {
+    marginTop: 8,
+    backgroundColor: "#FFD700",
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+
+  openServiceText: {
+    color: "#080700",
+    fontWeight: "bold",
   },
 });

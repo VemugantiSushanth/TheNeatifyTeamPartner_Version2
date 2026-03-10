@@ -358,6 +358,25 @@ export default function MyRoleScreen() {
         </TouchableOpacity>
       </View>
 
+      <TouchableOpacity
+        style={{
+          marginTop: 15,
+          padding: 14,
+          backgroundColor: "#f5f5f5",
+          borderRadius: 10,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+        onPress={() => router.push("./availability-calendar")}
+      >
+        <Text style={{ fontSize: 16, fontWeight: "600" }}>
+          My Availability Calendar
+        </Text>
+
+        <Ionicons name="calendar-outline" size={20} color="#000" />
+      </TouchableOpacity>
+
       {/* FOOTER (FIXED) */}
       <View style={styles.footer}>
         <TouchableOpacity

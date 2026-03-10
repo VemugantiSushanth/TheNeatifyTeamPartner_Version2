@@ -1,17 +1,17 @@
 {
   "expo": {
     "name": "The Neatify Team Partner",
-    "slug": "neatify-staff-app",
+    "slug": "neatify-partner-app",
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "neatifypartnerapp",
+    "scheme": "theneatifypartnerapp",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "package": "com.neatify.partner",
+      "package": "com.theneatifyteam.partner",
       "versionCode": 2,
       "allowBackup": false,
       "permissions": [
@@ -68,9 +68,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "92fe1756-d8f9-4f26-b499-53e237b6759d"
+        "projectId": "f5d166d2-9e5e-46e9-99c1-ea00b05b3ebe"
       }
     },
-    "owner": "vemuganti_sushanth_reddy"
+    "owner": "akshitha0909"
   }
 }

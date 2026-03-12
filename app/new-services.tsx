@@ -149,7 +149,7 @@ export default function NewServices() {
                 style={styles.mapBtn}
                 onPress={() => openMaps(item.full_address)}
               >
-                <Text style={styles.mapBtnText}>Navigate</Text>
+                <Text style={styles.mapBtnText}>Location</Text>
               </TouchableOpacity>
             </View>
           ))

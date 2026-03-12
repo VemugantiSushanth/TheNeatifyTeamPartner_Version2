@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   Image,
   StatusBar,
@@ -16,30 +16,89 @@ import { supabase } from "../lib/supabase";
 export default function AvailabilityCalendar() {
   const [markedDates, setMarkedDates] = useState<any>({});
   const [mode, setMode] = useState("available");
+  const [hasSavedData, setHasSavedData] = useState(false);
 
   const month = new Date().toISOString().slice(0, 7);
 
-  /* ================= SELECT DATE ================= */
+  const today = new Date();
+  const maxDate = new Date();
+  maxDate.setDate(today.getDate() + 90);
+
+  /* LOAD AVAILABILITY */
+
+  const loadAvailability = async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return;
+
+    const userId = userData.user.id;
+
+    const { data, error } = await supabase
+      .from("staff_monthly_availability")
+      .select("calendar_data")
+      .eq("staff_id", userId)
+      .eq("month", month)
+      .maybeSingle();
+
+    if (error) {
+      console.log("Fetch error:", error);
+      return;
+    }
+
+    if (!data?.calendar_data) {
+      setMarkedDates({});
+      setHasSavedData(false);
+      return;
+    }
+
+    const marks: any = {};
+
+    Object.entries(data.calendar_data).forEach(([date, status]: any) => {
+      marks[date] = {
+        selected: true,
+        selectedColor: status === "available" ? "#16a34a" : "#ef4444",
+      };
+    });
+
+    setMarkedDates(marks);
+    setHasSavedData(true);
+  };
+
+  /* reload when screen opens */
+
+  useFocusEffect(
+    useCallback(() => {
+      loadAvailability();
+    }, []),
+  );
+
+  /* SELECT DATE */
 
   const onDayPress = (day: any) => {
     const date = day.dateString;
+    const existing = markedDates[date];
 
-    const color = mode === "available" ? "#16a34a" : "#ef4444";
+    if (existing) {
+      const updated = { ...markedDates };
+      delete updated[date];
+      setMarkedDates(updated);
+    } else {
+      const color = mode === "available" ? "#16a34a" : "#ef4444";
 
-    setMarkedDates({
-      ...markedDates,
-      [date]: {
-        selected: true,
-        selectedColor: color,
-      },
-    });
+      setMarkedDates({
+        ...markedDates,
+        [date]: {
+          selected: true,
+          selectedColor: color,
+        },
+      });
+    }
   };
 
-  /* ================= SAVE CALENDAR ================= */
+  /* SAVE / UPDATE */
 
   const saveAvailability = async () => {
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
+    if (!userData?.user) return;
 
     const userId = userData.user.id;
 
@@ -51,29 +110,39 @@ export default function AvailabilityCalendar() {
 
     const json: any = {};
 
-    Object.keys(markedDates).forEach((date) => {
+    Object.entries(markedDates).forEach(([date, value]: any) => {
       json[date] =
-        markedDates[date].selectedColor === "#16a34a"
-          ? "available"
-          : "not_available";
+        value.selectedColor === "#16a34a" ? "available" : "not_available";
     });
 
-    await supabase.from("staff_monthly_availability").upsert({
-      staff_id: userId,
-      staff_name: profile?.name,
-      staff_email: profile?.email,
-      month: month,
-      calendar_data: json,
-    });
+    const { error } = await supabase.from("staff_monthly_availability").upsert(
+      {
+        staff_id: userId,
+        staff_name: profile?.name,
+        staff_email: profile?.email,
+        month: month,
+        calendar_data: json,
+      },
+      { onConflict: "staff_id,month" },
+    );
 
-    alert("Availability Saved");
+    if (error) {
+      console.log("Save error:", error);
+      return;
+    }
+
+    setHasSavedData(true);
+
+    await loadAvailability();
+
+    alert("Availability Updated");
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <StatusBar backgroundColor="#FFD700" barStyle="dark-content" />
 
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
 
       <View style={styles.header}>
         <Image
@@ -86,7 +155,7 @@ export default function AvailabilityCalendar() {
         </TouchableOpacity>
       </View>
 
-      {/* ================= CONTENT ================= */}
+      {/* CONTENT */}
 
       <View style={{ flex: 1, padding: 20 }}>
         <Text style={styles.title}>My Availability Calendar</Text>
@@ -112,7 +181,8 @@ export default function AvailabilityCalendar() {
         {/* CALENDAR */}
 
         <Calendar
-          minDate={new Date().toISOString().split("T")[0]}
+          minDate={today.toISOString().split("T")[0]}
+          maxDate={maxDate.toISOString().split("T")[0]}
           onDayPress={onDayPress}
           markedDates={markedDates}
           theme={{
@@ -123,11 +193,13 @@ export default function AvailabilityCalendar() {
         {/* SAVE BUTTON */}
 
         <TouchableOpacity style={styles.saveBtn} onPress={saveAvailability}>
-          <Text style={styles.saveText}>Save Availability</Text>
+          <Text style={styles.saveText}>
+            {hasSavedData ? "Update Availability" : "Save Availability"}
+          </Text>
         </TouchableOpacity>
       </View>
 
-      {/* ================= FOOTER ================= */}
+      {/* FOOTER */}
 
       <View style={styles.footer}>
         <TouchableOpacity
@@ -157,8 +229,6 @@ export default function AvailabilityCalendar() {
     </SafeAreaView>
   );
 }
-
-/* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
   header: {

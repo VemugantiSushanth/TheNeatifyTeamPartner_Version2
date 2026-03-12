@@ -111,6 +111,10 @@ export default function AssignedServices() {
                 </Text>
 
                 <Text>
+                  <Text style={styles.label}>Date:</Text> {item.booking_date}
+                </Text>
+
+                <Text>
                   <Text style={styles.label}>Time:</Text> {item.booking_time}
                 </Text>
 
@@ -136,7 +140,7 @@ export default function AssignedServices() {
                 style={styles.mapBtn}
                 onPress={() => openMaps(item.full_address)}
               >
-                <Text style={styles.mapBtnText}>Navigate</Text>
+                <Text style={styles.mapBtnText}>Location</Text>
               </TouchableOpacity>
 
               <TouchableOpacity

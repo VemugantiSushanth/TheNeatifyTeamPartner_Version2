@@ -201,13 +201,18 @@ export default function AssignedServiceDetails() {
     return result.trim();
   };
 
-  const openMaps = (address: string) =>
-    Linking.openURL(
-      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        address,
-      )}`,
-    );
+  const openMaps = (lat: number, lng: number) => {
+    if (!lat || !lng) {
+      showPopup({
+        title: "Location Not Available 📍",
+        message: "Customer location coordinates are missing.",
+      });
+      return;
+    }
 
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    Linking.openURL(url);
+  };
   const openCamera = async () => {
     const p = await ImagePicker.requestCameraPermissionsAsync();
 
@@ -388,13 +393,17 @@ export default function AssignedServiceDetails() {
   const confirmSkip = async () => {
     if (!selectedReason || !skipType) return;
 
+    const reasonText = `Skipped: ${selectedReason}`;
+
     if (skipType === "start") {
       setStartPhotoSkipped(true);
       setStartSkipReason(selectedReason);
 
       await supabase
         .from("bookings")
-        .update({ start_photo_skip_reason: selectedReason })
+        .update({
+          start_photo_url: reasonText,
+        })
         .eq("id", booking.id);
     } else {
       setEndPhotoSkipped(true);
@@ -402,7 +411,9 @@ export default function AssignedServiceDetails() {
 
       await supabase
         .from("bookings")
-        .update({ end_photo_skip_reason: selectedReason })
+        .update({
+          end_photo_url: reasonText,
+        })
         .eq("id", booking.id);
     }
 
@@ -470,7 +481,7 @@ export default function AssignedServiceDetails() {
 
             <TouchableOpacity
               style={styles.mapBtn}
-              onPress={() => openMaps(booking.full_address)}
+              onPress={() => openMaps(booking.latitude, booking.longitude)}
             >
               <Text>Location</Text>
             </TouchableOpacity>

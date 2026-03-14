@@ -70,17 +70,14 @@ export default function NewServices() {
   }, []);
 
   /* ================= GOOGLE MAPS ================= */
-  const openMaps = (address: string) => {
-    if (!address) {
-      Alert.alert("Address not available");
+  const openMaps = (lat: number, lng: number) => {
+    if (!lat || !lng) {
+      Alert.alert("Location coordinates not available");
       return;
     }
 
-    Linking.openURL(
-      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        address,
-      )}`,
-    );
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    Linking.openURL(url);
   };
 
   return (
@@ -147,7 +144,7 @@ export default function NewServices() {
 
               <TouchableOpacity
                 style={styles.mapBtn}
-                onPress={() => openMaps(item.full_address)}
+                onPress={() => openMaps(item.latitude, item.longitude)}
               >
                 <Text style={styles.mapBtnText}>Location</Text>
               </TouchableOpacity>

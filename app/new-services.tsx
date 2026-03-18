@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
-  Image,
   Linking,
   RefreshControl,
   ScrollView,
@@ -89,6 +89,7 @@ export default function NewServices() {
         <Image
           source={require("../assets/images/logo.png")}
           style={styles.logo}
+          contentFit="contain"
         />
 
         <TouchableOpacity onPress={() => router.back()}>
@@ -198,7 +199,6 @@ const styles = StyleSheet.create({
   logo: {
     width: 190,
     height: 64,
-    resizeMode: "contain",
   },
 
   emptyText: {

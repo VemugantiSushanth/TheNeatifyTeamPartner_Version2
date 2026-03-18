@@ -1,13 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
+import { Image } from "expo-image";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Keyboard,
   KeyboardAvoidingView,
   Linking,
@@ -435,6 +435,7 @@ export default function AssignedServiceDetails() {
         <Image
           source={require("../assets/images/logo.png")}
           style={styles.logo}
+          contentFit="contain"
         />
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} />
@@ -910,7 +911,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  logo: { width: 190, height: 64, resizeMode: "contain" },
+  logo: { width: 190, height: 64 },
   body: { padding: 20 },
   card: { borderWidth: 2, borderRadius: 16, padding: 16 },
   title: { fontSize: 18, fontWeight: "800" },

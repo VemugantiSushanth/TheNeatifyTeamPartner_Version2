@@ -198,6 +198,61 @@ export default function MyRoleScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+      {/* HEADER */}
+      <View style={styles.header}>
+        <Image
+          source={require("../assets/images/logo.png")}
+          style={styles.logo}
+          contentFit="contain"
+        />
+
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.bellIcon}
+            onPress={() => router.push("/new-services")}
+          >
+            <Ionicons name="notifications" size={26} color="#000" />
+            {newCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{newCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => setShowMenu(true)}>
+            <Ionicons name="person-circle-outline" size={34} color="#000" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* DROPDOWN */}
+      {showMenu && (
+        <Pressable style={styles.overlay} onPress={() => setShowMenu(false)} />
+      )}
+
+      {showMenu && (
+        <View style={styles.menu}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              setShowMenu(false);
+              router.push("/my-account");
+            }}
+          >
+            <Text style={styles.menuText}>My Account</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              setShowMenu(false);
+              handleLogout();
+            }}
+          >
+            <Text style={[styles.menuText, { color: "red" }]}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <FlatList
         data={[{ key: "main" }]}
         contentContainerStyle={{ paddingBottom: 200 }}
@@ -207,70 +262,6 @@ export default function MyRoleScreen() {
         renderItem={() => (
           <View style={styles.container}>
             <StatusBar backgroundColor="#FFD700" barStyle="dark-content" />
-
-            {/* HEADER */}
-            <View style={styles.header}>
-              <Image
-                source={require("../assets/images/logo.png")}
-                style={styles.logo}
-              />
-
-              <View style={styles.headerRight}>
-                <TouchableOpacity
-                  style={styles.bellIcon}
-                  onPress={() => router.push("/new-services")}
-                >
-                  <Ionicons name="notifications" size={26} color="#000" />
-                  {newCount > 0 && (
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>{newCount}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => setShowMenu(true)}>
-                  <Ionicons
-                    name="person-circle-outline"
-                    size={34}
-                    color="#000"
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* DROPDOWN */}
-            {showMenu && (
-              <Pressable
-                style={styles.overlay}
-                onPress={() => setShowMenu(false)}
-              />
-            )}
-
-            {showMenu && (
-              <View style={styles.menu}>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => {
-                    setShowMenu(false);
-                    router.push("/my-account");
-                  }}
-                >
-                  <Text style={styles.menuText}>My Account</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => {
-                    setShowMenu(false);
-                    handleLogout();
-                  }}
-                >
-                  <Text style={[styles.menuText, { color: "red" }]}>
-                    Logout
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
 
             {/* SLIDER */}
             <View style={styles.sliderWrapper}>
@@ -307,24 +298,7 @@ export default function MyRoleScreen() {
               </View>
             </View>
 
-            {/* SUMMARY */}
-            <View style={styles.summaryRow}>
-              <View style={[styles.summaryBox, styles.assignedBox]}>
-                <Text style={styles.summaryTitle}>Assigned</Text>
-                <Text style={[styles.summaryCount, { color: "#f97316" }]}>
-                  {assignedCount}
-                </Text>
-              </View>
-
-              <View style={[styles.summaryBox, styles.completedBox]}>
-                <Text style={styles.summaryTitle}>Completed</Text>
-                <Text style={[styles.summaryCount, { color: "#16a34a" }]}>
-                  {completedCount}
-                </Text>
-              </View>
-            </View>
-
-            {/* SWITCH */}
+            {/*   TOGGLE */}
             <View style={styles.availabilityWrapper}>
               <Text style={styles.availabilityText}>Available for Work</Text>
               <Switch
@@ -333,49 +307,67 @@ export default function MyRoleScreen() {
                 trackColor={{ false: "#ede4e4", true: "#0fd357" }}
               />
             </View>
+
+            {/* ACTION BUTTONS */}
+            <View style={styles.actionWrapper}>
+              {/* Calendar FIRST */}
+              <TouchableOpacity
+                style={[styles.primaryBtn, styles.actionBtnRow]}
+                onPress={() => router.push("./availability-calendar")}
+              >
+                <Ionicons name="calendar-outline" size={18} color="#000" />
+                <Text style={styles.primaryBtnText}>
+                  My Availability Calendar
+                </Text>
+              </TouchableOpacity>
+
+              {/* Assigned Services SECOND */}
+              <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={() => router.push("/assigned-services")}
+              >
+                <Text style={styles.primaryBtnText}>My Assigned Services</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* SUMMARY */}
+            <View style={styles.summaryRow}>
+              {/* ASSIGNED */}
+              <TouchableOpacity
+                style={[styles.summaryBox, styles.assignedBox]}
+                onPress={() => router.push("/assigned-services")}
+              >
+                <Text style={styles.summaryTitle}>Assigned</Text>
+                <Text style={[styles.summaryCount, { color: "#f97316" }]}>
+                  {assignedCount}
+                </Text>
+              </TouchableOpacity>
+
+              {/* COMPLETED */}
+              <TouchableOpacity
+                style={[styles.summaryBox, styles.completedBox]}
+                onPress={() => router.push("/dashboard")}
+              >
+                <Text style={styles.summaryTitle}>Completed</Text>
+                <Text style={[styles.summaryCount, { color: "#16a34a" }]}>
+                  {completedCount}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* CUSTOMER CARE */}
+            <View style={styles.customerCareWrapper}>
+              <TouchableOpacity
+                style={styles.customerCareBtn}
+                onPress={handleCustomerCare}
+              >
+                <Ionicons name="headset-outline" size={18} color="#000" />
+                <Text style={styles.customerCareText}>Customer Care</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       />
-
-      {/* CUSTOMER CARE */}
-      <View style={styles.customerCareWrapper}>
-        <TouchableOpacity
-          style={styles.customerCareBtn}
-          onPress={handleCustomerCare}
-        >
-          <Ionicons name="headset-outline" size={18} color="#000" />
-          <Text style={styles.customerCareText}>Customer Care</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* MY ASSIGNED SERVICES */}
-      <View style={styles.fixedButtonWrapper}>
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={() => router.push("/assigned-services")}
-        >
-          <Text style={styles.primaryBtnText}>My Assigned Services</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity
-        style={{
-          marginTop: 15,
-          padding: 14,
-          backgroundColor: "#f5f5f5",
-          borderRadius: 10,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-        onPress={() => router.push("./availability-calendar")}
-      >
-        <Text style={{ fontSize: 16, fontWeight: "600" }}>
-          My Availability Calendar
-        </Text>
-
-        <Ionicons name="calendar-outline" size={20} color="#000" />
-      </TouchableOpacity>
 
       {/* FOOTER (FIXED) */}
       <View style={styles.footer}>
@@ -456,7 +448,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 14 },
-  logo: { width: 190, height: 64, resizeMode: "contain" },
+  logo: { width: 190, height: 64 },
   bellIcon: { position: "relative" },
   badge: {
     position: "absolute",
@@ -479,6 +471,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 10,
   },
+
   menu: {
     position: "absolute",
     top: 72,
@@ -489,7 +482,9 @@ const styles = StyleSheet.create({
     width: 150,
     zIndex: 20,
   },
+
   menuItem: { padding: 14 },
+
   menuText: { fontSize: 15, fontWeight: "600" },
 
   sliderWrapper: {
@@ -500,45 +495,60 @@ const styles = StyleSheet.create({
   },
   slideImage: { width: width - 32, height: SLIDER_HEIGHT },
 
-  summaryRow: { flexDirection: "row", marginHorizontal: 16, gap: 12 },
+  summaryRow: {
+    flexDirection: "row",
+    marginHorizontal: 16,
+    gap: 10,
+    marginTop: 10,
+  },
   summaryBox: {
     flex: 1,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 14,
+    paddingVertical: 10, // 🔽 reduced
+    paddingHorizontal: 8,
     alignItems: "center",
     backgroundColor: "#f9fafb",
     borderWidth: 1,
   },
   assignedBox: { borderColor: "#f97316" },
   completedBox: { borderColor: "#16a34a" },
-  summaryTitle: { fontWeight: "700", marginBottom: 6 },
-  summaryCount: { fontSize: 22, fontWeight: "800" },
+  summaryTitle: { fontWeight: "600", marginBottom: 6, fontSize: 13 },
+  summaryCount: { fontSize: 18, fontWeight: "800" },
 
   availabilityWrapper: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginHorizontal: 40,
-    marginTop: 20,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 6,
+    padding: 5,
+    borderRadius: 14,
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#dae90b",
   },
+
   availabilityText: { fontSize: 16, fontWeight: "700" },
 
   customerCareWrapper: {
-    alignItems: "flex-end",
-    paddingHorizontal: 40,
-    marginBottom: 12,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 10,
   },
+
   customerCareBtn: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center", // center it nicely
     gap: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingVertical: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#000",
     backgroundColor: "#fff",
   },
+
   customerCareText: { fontSize: 14, fontWeight: "800" },
 
   fixedButtonWrapper: {
@@ -579,6 +589,19 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#ccc",
     marginHorizontal: 4,
+  },
+
+  actionWrapper: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    gap: 10,
+  },
+
+  actionBtnRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
   },
 
   activeDot: {

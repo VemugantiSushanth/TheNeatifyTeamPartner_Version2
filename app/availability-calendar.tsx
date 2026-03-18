@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-  Image,
   StatusBar,
   StyleSheet,
   Text,
@@ -148,6 +148,7 @@ export default function AvailabilityCalendar() {
         <Image
           source={require("../assets/images/logo.png")}
           style={styles.logo}
+          contentFit="contain"
         />
 
         <TouchableOpacity onPress={() => router.back()}>
@@ -243,7 +244,6 @@ const styles = StyleSheet.create({
   logo: {
     width: 190,
     height: 64,
-    resizeMode: "contain",
   },
 
   title: {

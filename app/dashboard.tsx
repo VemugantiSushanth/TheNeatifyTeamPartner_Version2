@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { Image } from "expo-image";
 import { router, usePathname } from "expo-router"; // ✅ added usePathname
 import { useEffect, useState } from "react";
 import {
-  Image,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -16,13 +16,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
 
 export default function Dashboard() {
-  const pathname = usePathname(); // ✅ added
+  const pathname = usePathname();
 
   const [data, setData] = useState<any[]>([]);
   const [filterDate, setFilterDate] = useState("");
   const [sortBy, setSortBy] = useState<"recent" | "date" | "name">("recent");
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     loadCompleted();
@@ -39,7 +41,7 @@ export default function Dashboard() {
 
     let query = supabase
       .from("bookings")
-      .select("customer_name,email,work_ended_at,worked_duration")
+      .select("customer_name,email,services,work_ended_at,worked_duration")
       .eq("assigned_staff_email", email)
       .eq("work_status", "COMPLETED");
     if (sortBy === "recent") {
@@ -78,6 +80,7 @@ export default function Dashboard() {
         <Image
           source={require("../assets/images/logo.png")}
           style={styles.logo}
+          contentFit="contain"
         />
 
         <TouchableOpacity onPress={() => router.back()}>
@@ -228,23 +231,66 @@ export default function Dashboard() {
 
         {data.map((item, i) => (
           <View key={i} style={styles.card}>
-            <View>
+            {/* TOP ROW */}
+            <View style={styles.cardTop}>
               <Text style={styles.name}>{item.customer_name}</Text>
-              <Text style={styles.email}>{item.email}</Text>
-              <Text style={styles.date}>
-                Completed: {formatDateTime(item.work_ended_at)}
-              </Text>
-              {item.worked_duration && (
-                <Text style={styles.worked}>
-                  Worked Time: {item.worked_duration}
-                </Text>
-              )}
+
+              <Text style={styles.completedBadge}>COMPLETED</Text>
             </View>
 
-            <Text style={styles.completed}>COMPLETED</Text>
+            {/* BUTTON */}
+            <TouchableOpacity
+              style={styles.viewBtn}
+              onPress={() => {
+                setSelectedItem(item);
+                setShowModal(true);
+              }}
+            >
+              <Text style={styles.viewText}>View Details</Text>
+            </TouchableOpacity>
           </View>
         ))}
       </ScrollView>
+
+      {showModal && selectedItem && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Service Details</Text>
+
+            <Text style={styles.modalText}>
+              Name: {selectedItem.customer_name}
+            </Text>
+
+            <Text style={styles.modalText}>Email: {selectedItem.email}</Text>
+
+            <Text style={styles.modalText}>Services:</Text>
+
+            {selectedItem.services?.map((s: any, i: number) => (
+              <View key={i} style={{ marginLeft: 10, marginTop: 5 }}>
+                <Text>• {s.title}</Text>
+                <Text style={{ color: "#252424" }}>Duration: {s.duration}</Text>
+              </View>
+            ))}
+
+            <Text style={styles.modalText}>
+              Completed: {formatDateTime(selectedItem.work_ended_at)}
+            </Text>
+
+            {selectedItem.worked_duration && (
+              <Text style={styles.modalText}>
+                Worked Time: {selectedItem.worked_duration}
+              </Text>
+            )}
+
+            <TouchableOpacity
+              style={styles.closeBtn}
+              onPress={() => setShowModal(false)}
+            >
+              <Text style={{ color: "#000000", fontWeight: "700" }}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* ================= UPDATED FOOTER ONLY ================= */}
       <View style={styles.footer}>
@@ -327,7 +373,6 @@ const styles = StyleSheet.create({
   logo: {
     width: 190,
     height: 64,
-    resizeMode: "contain",
   },
 
   countBox: {
@@ -337,7 +382,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "#ecfdf5",
     borderWidth: 1,
-    borderColor: "#22c55e",
+    borderColor: "#cad84b",
   },
 
   countText: {
@@ -379,13 +424,11 @@ const styles = StyleSheet.create({
 
   card: {
     borderWidth: 1.5,
-    borderColor: "#22c55e",
+    borderColor: "#b5ca42",
     borderRadius: 16,
     padding: 16,
     marginBottom: 14,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    backgroundColor: "#fff", // ✅ makes it cleaner
   },
 
   name: {
@@ -480,5 +523,91 @@ const styles = StyleSheet.create({
 
   sortText: {
     fontWeight: "700",
+  },
+
+  completedBtn: {
+    marginTop: 10,
+    backgroundColor: "#dcfce7",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    alignSelf: "flex-start",
+  },
+
+  completedText: {
+    color: "#16a34a",
+    fontWeight: "800",
+  },
+
+  modalOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2000,
+  },
+
+  modalBox: {
+    width: "85%",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+  },
+
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    marginBottom: 10,
+  },
+
+  modalText: {
+    marginBottom: 6,
+    color: "#333",
+  },
+
+  closeBtn: {
+    marginTop: 15,
+    backgroundColor: "#FFD700",
+    padding: 10,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+
+  cardTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  completedBadge: {
+    color: "#16a34a",
+    fontWeight: "800",
+    backgroundColor: "#dcfce7",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 12,
+  },
+
+  viewBtn: {
+    marginTop: 12,
+    backgroundColor: "#fff",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 15,
+    alignSelf: "center",
+
+    borderWidth: 1.5, // ✅ add border
+    borderColor: "#000", // ✅ match your theme color
+  },
+
+  viewText: {
+    color: "#000",
+    fontWeight: "700",
+    fontSize: 13,
   },
 });

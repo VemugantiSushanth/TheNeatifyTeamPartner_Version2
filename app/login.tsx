@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import * as LocalAuthentication from "expo-local-authentication";
 import { router } from "expo-router";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react-native";
@@ -6,7 +7,6 @@ import {
   ActivityIndicator,
   Alert,
   BackHandler,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 import { supabase } from "../lib/supabase";
 
 export default function LoginScreen() {
@@ -142,13 +143,34 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      // Step 1: Login with Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
 
+      const userId = data.user.id;
+
+      // Step 2: Check if this user exists in staff_profile
+      const { data: staffData } = await supabase
+        .from("staff_profile")
+        .select("id")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (!staffData) {
+        // If not staff → block login
+        await supabase.auth.signOut();
+        Alert.alert(
+          "Access Denied",
+          "This account is not authorized to access the Staff App.",
+        );
+        return;
+      }
+
+      // Step 3: Optional biometric verification
       const verified = await verifyDeviceSecurity();
 
       if (!verified) {
@@ -157,6 +179,7 @@ export default function LoginScreen() {
         return;
       }
 
+      // Step 4: Allow staff to enter app
       router.replace("./my-role");
     } catch (err: any) {
       Alert.alert("Login Failed", err.message);
@@ -164,7 +187,6 @@ export default function LoginScreen() {
       setLoading(false);
     }
   };
-
   // const getCleanMobile = () => mobile.replace(/\D/g, "");
 
   // const checkIfMobileRegistered = async () => {
@@ -269,6 +291,7 @@ export default function LoginScreen() {
         <Image
           source={require("../assets/images/logo.png")}
           style={styles.logo}
+          contentFit="contain"
         />
         <TouchableOpacity style={styles.primaryBtn} onPress={handleUnlock}>
           <Text style={styles.primaryBtnText}>Unlock</Text>
@@ -465,7 +488,6 @@ const styles = StyleSheet.create({
   logo: {
     width: 300,
     height: 100,
-    resizeMode: "contain",
     marginBottom: 10,
   },
   subtitle: {

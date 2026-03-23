@@ -255,7 +255,7 @@ export default function MyRoleScreen() {
       )}
       <FlatList
         data={[{ key: "main" }]}
-        contentContainerStyle={{ paddingBottom: 200 }}
+        contentContainerStyle={{ paddingBottom: 20 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={fetchCounts} />
         }

@@ -114,14 +114,86 @@ export default function AssignedServiceDetails() {
       // ================= TIMER CHANGE =================
       const { data: latest } = await supabase
         .from("bookings")
-        .select("work_started_at")
+        .select(
+          "work_started_at, work_ended_at, start_photo_url, end_photo_url",
+        )
         .eq("id", booking.id)
         .single();
 
-      if (latest?.work_started_at) {
+      if (latest?.work_started_at && !latest?.work_ended_at) {
+        // ✅ WORK IS RUNNING
         setWorkStartedAt(latest.work_started_at);
         setRunning(true);
+        setWorkStopped(false);
+
+        setStartVerified(true);
+      } else if (latest?.work_ended_at) {
+        // ✅ WORK COMPLETED
+        setRunning(false);
+        setWorkStopped(true);
+        setWorkStartedAt(null);
+
+        setStartVerified(true);
       }
+
+      if (latest?.work_started_at && !latest?.work_ended_at) {
+        setWorkStartedAt(latest.work_started_at);
+        setRunning(true);
+        setWorkStopped(false);
+
+        setStartVerified(true);
+      } else if (latest?.work_ended_at) {
+        setRunning(false);
+        setWorkStopped(true);
+        setWorkStartedAt(null);
+
+        setStartVerified(true);
+      }
+
+      /* ================= ADD HERE ================= */
+
+      // 🔥 RESTORE START SKIP
+      if (
+        typeof latest?.start_photo_url === "string" &&
+        latest.start_photo_url.startsWith("Skipped:")
+      ) {
+        const reason = latest.start_photo_url.replace("Skipped: ", "");
+
+        setStartPhotoSkipped(true);
+        setStartSkipReason(reason);
+      }
+
+      // 🔥 RESTORE END SKIP
+      if (
+        typeof latest?.end_photo_url === "string" &&
+        latest.end_photo_url.startsWith("Skipped:")
+      ) {
+        const reason = latest.end_photo_url.replace("Skipped: ", "");
+
+        setEndPhotoSkipped(true);
+        setEndSkipReason(reason);
+      }
+
+      // 🔥 RESTORE START OTP (if work started)
+      if (latest?.work_started_at) {
+        setStartVerified(true);
+
+        // show masked OTP if not available
+        if (!startOtp) {
+          setStartOtp("******");
+        }
+      }
+
+      // 🔥 RESTORE START IMAGES
+      if (latest?.start_photo_url && Array.isArray(latest.start_photo_url)) {
+        setBeforeImages(latest.start_photo_url);
+      }
+
+      // 🔥 RESTORE END IMAGES
+      if (latest?.end_photo_url && Array.isArray(latest.end_photo_url)) {
+        setAfterImages(latest.end_photo_url);
+      }
+
       // ================= TIMER CHANGE END =================
     })();
   }, []);
@@ -615,7 +687,7 @@ export default function AssignedServiceDetails() {
                     timerRef.current = null;
                   }
 
-                  setWorkStartedAt(null);
+                  const endTime = new Date().toISOString();
 
                   showPopup({
                     title: "Work Completed 🎉",
@@ -623,9 +695,18 @@ export default function AssignedServiceDetails() {
                       seconds,
                     )}.\n\nTo finalize the service, please upload the end photo and verify with OTP.`,
                     confirmText: "Proceed",
-                    onConfirm: () => {
+                    onConfirm: async () => {
+                      // 🔥 SAVE TO DB
+                      await supabase
+                        .from("bookings")
+                        .update({
+                          work_ended_at: endTime,
+                        })
+                        .eq("id", booking.id);
+
                       setRunning(false);
                       setWorkStopped(true);
+                      setWorkStartedAt(null);
                     },
                   });
                 }}
@@ -876,7 +957,10 @@ export default function AssignedServiceDetails() {
       {/* ✅ FOOTER LOCKED */}
       {!isKeyboardVisible && (
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.footerItem}>
+          <TouchableOpacity
+            style={styles.footerItem}
+            onPress={() => router.push("/my-role")}
+          >
             <Ionicons name="home" size={22} color="#000" />
             <Text style={styles.footerTextActive}>Home</Text>
           </TouchableOpacity>

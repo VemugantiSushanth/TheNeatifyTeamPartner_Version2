@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
 
   body: {
     padding: 20,
-    paddingBottom: 90,
+    paddingBottom: 20,
   },
 
   empty: {

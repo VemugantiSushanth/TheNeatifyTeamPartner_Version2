@@ -103,7 +103,7 @@ export default function MyAccountScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
       <StatusBar backgroundColor="#FFD700" barStyle="dark-content" />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 160 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 10 }}>
         {/* ================= HEADER ================= */}
         <View style={styles.headerCard}>
           <View>

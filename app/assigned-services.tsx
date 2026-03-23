@@ -61,7 +61,6 @@ export default function AssignedServices() {
     }
 
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-
     Linking.openURL(url);
   };
 
@@ -92,17 +91,40 @@ export default function AssignedServices() {
         {services.length === 0 ? (
           <Text style={styles.emptyText}>No Assigned Services</Text>
         ) : (
-          services.map((item) => (
-            <View key={item.id} style={styles.card}>
-              <TouchableOpacity
-                onPress={() =>
-                  router.push({
-                    pathname: "/assigned-service-details",
-                    params: { booking: JSON.stringify(item) },
-                  })
-                }
+          services.map((item) => {
+            const isActive =
+              item.work_started_at &&
+              (!item.work_ended_at || item.work_ended_at === null);
+
+            return (
+              <View
+                key={item.id}
+                style={[
+                  styles.card,
+                  isActive && styles.activeHighlight, // 🔥 highlight active card
+                ]}
               >
-                <Text style={styles.cardTitle}>{item.customer_name}</Text>
+                {/* 🔥 HEADER ROW */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={styles.cardTitle}>{item.customer_name}</Text>
+
+                  {isActive && (
+                    <View style={styles.activeBadge}>
+                      <Text style={styles.activeBadgeText}>ACTIVE</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* 🔥 RUNNING STATUS */}
+                {isActive && (
+                  <Text style={styles.runningText}>⏱ Work in progress</Text>
+                )}
 
                 <Text>
                   <Text style={styles.label}>Phone:</Text>{" "}
@@ -133,28 +155,32 @@ export default function AssignedServices() {
                     </View>
                   ))}
                 </View>
-              </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.mapBtn}
-                onPress={() => openMaps(item.latitude, item.longitude)}
-              >
-                <Text style={styles.mapBtnText}>Location</Text>
-              </TouchableOpacity>
+                {/* LOCATION BUTTON */}
+                <TouchableOpacity
+                  style={styles.mapBtn}
+                  onPress={() => openMaps(item.latitude, item.longitude)}
+                >
+                  <Text style={styles.mapBtnText}>Location</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.openServiceBtn}
-                onPress={() =>
-                  router.push({
-                    pathname: "/assigned-service-details",
-                    params: { booking: JSON.stringify(item) },
-                  })
-                }
-              >
-                <Text style={styles.openServiceText}>Open Service</Text>
-              </TouchableOpacity>
-            </View>
-          ))
+                {/* 🔥 OPEN / RESUME BUTTON */}
+                <TouchableOpacity
+                  style={styles.openServiceBtn}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/assigned-service-details",
+                      params: { booking: JSON.stringify(item) },
+                    })
+                  }
+                >
+                  <Text style={styles.openServiceText}>
+                    {isActive ? "Resume Work" : "Open Service"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })
         )}
       </ScrollView>
 
@@ -219,10 +245,33 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFAFA",
   },
 
+  /* 🔥 ACTIVE CARD HIGHLIGHT */
+  activeHighlight: {
+    borderColor: "#FFD700",
+    backgroundColor: "#fffbea",
+  },
+
   cardTitle: {
     fontSize: 16,
     fontWeight: "800",
-    marginBottom: 10,
+    marginBottom: 6,
+  },
+
+  activeBadge: {
+    backgroundColor: "#FFD700",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+
+  activeBadgeText: {
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+
+  runningText: {
+    fontWeight: "700",
+    marginBottom: 6,
   },
 
   label: { fontWeight: "700" },
@@ -253,6 +302,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
+  openServiceBtn: {
+    marginTop: 8,
+    backgroundColor: "#FFD700",
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+
+  openServiceText: {
+    color: "#080700",
+    fontWeight: "bold",
+  },
+
   emptyText: {
     textAlign: "center",
     fontSize: 16,
@@ -278,18 +340,5 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: "600",
     color: "#000",
-  },
-
-  openServiceBtn: {
-    marginTop: 8,
-    backgroundColor: "#FFD700",
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-
-  openServiceText: {
-    color: "#080700",
-    fontWeight: "bold",
   },
 });

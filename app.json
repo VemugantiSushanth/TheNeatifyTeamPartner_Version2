@@ -2,7 +2,7 @@
   "expo": {
     "name": "The Neatify Team Partner",
     "slug": "neatify-partner-app",
-    "version": "1.0.1",
+    "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "theneatifypartnerapp",
@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "com.theneatifyteam.partner",
-      "versionCode": 2,
+      "versionCode": 3,
       "allowBackup": false,
       "permissions": [
         "CAMERA",
